@@ -5,7 +5,14 @@ data class AcState(
     val power: Boolean = false,
     val temp: Int = 24,
     val mode: String = "cool",
-    val fan: String = "high"
+    val fan: String = "high",
+    val swing: Boolean = false,
+    val timerActive: Boolean = false,
+    val timerDuration: Int = 0,
+    val scheduledOn: String = "",
+    val scheduledOff: String = "",
+    val scheduledOnActive: Boolean = false,
+    val scheduledOffActive: Boolean = false
 )
 
 data class ControlRequest(
@@ -13,7 +20,14 @@ data class ControlRequest(
     val power: Boolean? = null,
     val temp: Int? = null,
     val mode: String? = null,
-    val fan: String? = null
+    val fan: String? = null,
+    val swing: Boolean? = null,
+    val timerActive: Boolean? = null,
+    val timerDuration: Int? = null,
+    val scheduledOn: String? = null,
+    val scheduledOff: String? = null,
+    val scheduledOnActive: Boolean? = null,
+    val scheduledOffActive: Boolean? = null
 )
 
 data class TemperatureLog(

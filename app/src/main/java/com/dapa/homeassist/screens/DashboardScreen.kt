@@ -55,8 +55,17 @@ fun DashboardScreen(
     var acTargetTemp by remember { mutableStateOf(24) }
     var acMode by remember { mutableStateOf("cool") }
     var acFan by remember { mutableStateOf("high") }
-    var estimatedWatts by remember { mutableStateOf(0f) }
     
+    // New States
+    var acSwing by remember { mutableStateOf(false) }
+    var acTimerActive by remember { mutableStateOf(false) }
+    var acTimerDuration by remember { mutableStateOf(60) }
+    var acScheduledOn by remember { mutableStateOf("08:00") }
+    var acScheduledOff by remember { mutableStateOf("22:00") }
+    var acScheduledOnActive by remember { mutableStateOf(false) }
+    var acScheduledOffActive by remember { mutableStateOf(false) }
+    
+    var estimatedWatts by remember { mutableStateOf(0f) }
     var currentTime by remember { mutableStateOf("") }
     var currentDate by remember { mutableStateOf("") }
 
@@ -116,6 +125,15 @@ fun DashboardScreen(
                             acMode = payload["mode"] as? String ?: "cool"
                             acFan = payload["fan"] as? String ?: "high"
                             
+                            // Parse new states
+                            acSwing = payload["swing"] as? Boolean ?: false
+                            acTimerActive = payload["timerActive"] as? Boolean ?: false
+                            acTimerDuration = (payload["timerDuration"] as? Double)?.toInt() ?: 60
+                            acScheduledOn = payload["scheduledOn"] as? String ?: "08:00"
+                            acScheduledOff = payload["scheduledOff"] as? String ?: "22:00"
+                            acScheduledOnActive = payload["scheduledOnActive"] as? Boolean ?: false
+                            acScheduledOffActive = payload["scheduledOffActive"] as? Boolean ?: false
+                            
                             if (acPower) {
                                 val base = 600
                                 val diff = maxOf(0, 30 - acTargetTemp)
@@ -166,6 +184,16 @@ fun DashboardScreen(
                     acTargetTemp = response.acState.temp
                     acMode = response.acState.mode
                     acFan = response.acState.fan
+                    
+                    // Parse new states
+                    acSwing = response.acState.swing
+                    acTimerActive = response.acState.timerActive
+                    acTimerDuration = response.acState.timerDuration
+                    acScheduledOn = response.acState.scheduledOn
+                    acScheduledOff = response.acState.scheduledOff
+                    acScheduledOnActive = response.acState.scheduledOnActive
+                    acScheduledOffActive = response.acState.scheduledOffActive
+                    
                     estimatedWatts = response.currentPower
                     
                     if (response.temperatureHistory.isNotEmpty()) {
@@ -189,7 +217,14 @@ fun DashboardScreen(
             power = acPower,
             temp = acTargetTemp,
             mode = acMode,
-            fan = acFan
+            fan = acFan,
+            swing = acSwing,
+            timerActive = acTimerActive,
+            timerDuration = acTimerDuration,
+            scheduledOn = acScheduledOn,
+            scheduledOff = acScheduledOff,
+            scheduledOnActive = acScheduledOnActive,
+            scheduledOffActive = acScheduledOffActive
         )
         ApiClient.sendControl(req,
             onSuccess = {},
@@ -358,7 +393,7 @@ fun DashboardScreen(
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
+                             ) {
                                 Box(
                                     modifier = Modifier
                                         .size(8.dp)
@@ -603,6 +638,171 @@ fun DashboardScreen(
                                             }
                                         }
                                     }
+
+                                    Spacer(modifier = Modifier.height(20.dp))
+                                    Divider(color = cardBorder)
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    // Swing Control Row
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.Waves, contentDescription = null, tint = NeonBlue)
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Column {
+                                                Text("Swing (Ayunan Angin)", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = textColor)
+                                                Text("Gerakan bilah angin atas-bawah", fontSize = 11.sp, color = textSecColor)
+                                            }
+                                        }
+                                        Switch(
+                                            checked = acSwing,
+                                            onCheckedChange = {
+                                                acSwing = it
+                                                sendControlCommand()
+                                            },
+                                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NeonBlue)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(20.dp))
+                                    Divider(color = cardBorder)
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    // Timer Panel
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.HourglassEmpty, contentDescription = null, tint = LightBlue)
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column {
+                                                    Text("Timer Mati Mundur", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = textColor)
+                                                    Text(if (acTimerActive) "Mati otomatis dalam ${acTimerDuration} menit" else "Nonaktif", fontSize = 11.sp, color = textSecColor)
+                                                }
+                                            }
+                                            Switch(
+                                                checked = acTimerActive,
+                                                onCheckedChange = {
+                                                    acTimerActive = it
+                                                    sendControlCommand()
+                                                },
+                                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NeonBlue)
+                                            )
+                                        }
+
+                                        if (acTimerActive) {
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            Slider(
+                                                value = acTimerDuration.toFloat(),
+                                                onValueChange = { 
+                                                    acTimerDuration = it.toInt() 
+                                                },
+                                                onValueChangeFinished = {
+                                                    sendControlCommand()
+                                                },
+                                                valueRange = 15f..240f,
+                                                steps = 14, // 15 min increments
+                                                colors = SliderDefaults.colors(thumbColor = NeonBlue, activeTrackColor = NeonBlue)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(20.dp))
+                                    Divider(color = cardBorder)
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    // Scheduling Panel
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.Schedule, contentDescription = null, tint = NeonBlue)
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text("Jadwal Pintar AC", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = textColor)
+                                        }
+
+                                        Spacer(modifier = Modifier.height(16.dp))
+
+                                        // Scheduled On
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column {
+                                                Text("Nyalakan Jam", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor)
+                                                OutlinedTextField(
+                                                    value = acScheduledOn,
+                                                    onValueChange = { acScheduledOn = it },
+                                                    placeholder = { Text("08:00") },
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    singleLine = true,
+                                                    modifier = Modifier.width(90.dp).height(50.dp),
+                                                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = textColor, unfocusedTextColor = textColor, focusedBorderColor = NeonBlue, unfocusedBorderColor = cardBorder)
+                                                )
+                                            }
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text("Aktif", fontSize = 12.sp, color = textSecColor, modifier = Modifier.padding(end = 6.dp))
+                                                Switch(
+                                                    checked = acScheduledOnActive,
+                                                    onCheckedChange = {
+                                                        acScheduledOnActive = it
+                                                        sendControlCommand()
+                                                    },
+                                                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NeonBlue)
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        // Scheduled Off
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column {
+                                                Text("Matikan Jam", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textColor)
+                                                OutlinedTextField(
+                                                    value = acScheduledOff,
+                                                    onValueChange = { acScheduledOff = it },
+                                                    placeholder = { Text("22:00") },
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    singleLine = true,
+                                                    modifier = Modifier.width(90.dp).height(50.dp),
+                                                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = textColor, unfocusedTextColor = textColor, focusedBorderColor = NeonBlue, unfocusedBorderColor = cardBorder)
+                                                )
+                                            }
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text("Aktif", fontSize = 12.sp, color = textSecColor, modifier = Modifier.padding(end = 6.dp))
+                                                Switch(
+                                                    checked = acScheduledOffActive,
+                                                    onCheckedChange = {
+                                                        acScheduledOffActive = it
+                                                        sendControlCommand()
+                                                    },
+                                                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NeonBlue)
+                                                )
+                                            }
+                                        }
+                                        
+                                        if (acScheduledOnActive || acScheduledOffActive) {
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            Button(
+                                                onClick = { sendControlCommand() },
+                                                colors = ButtonDefaults.buttonColors(containerColor = cardBg),
+                                                modifier = Modifier.fillMaxWidth().border(1.dp, NeonBlue, RoundedCornerShape(8.dp)),
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
+                                                Text("Terapkan Jadwal Baru", color = NeonBlue, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -611,4 +811,5 @@ fun DashboardScreen(
             }
         }
     }
+}
 }
