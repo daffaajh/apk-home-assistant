@@ -9,9 +9,13 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+
 object ApiClient {
-    var backendIp: String = "192.168.1.100"
-    var backendPort: String = "3000"
+    var backendIp: String by mutableStateOf("192.168.1.100")
+    var backendPort: String by mutableStateOf("3000")
 
     private val client = OkHttpClient()
     private val gson = Gson()
