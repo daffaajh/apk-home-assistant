@@ -1,15 +1,19 @@
 package com.dapa.homeassist
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.dapa.homeassist.network.ApiClient
 import com.dapa.homeassist.screens.AuthScreen
-import com.dapa.homeassist.screens.DashboardScreen
+import com.dapa.homeassist.screens.MainLayout
 import com.dapa.homeassist.screens.WelcomeScreen
 import com.dapa.homeassist.theme.HomeAssistantDapaTheme
 
@@ -17,47 +21,57 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            var systemDarkTheme = isSystemInDarkTheme()
-            var isDarkMode by remember { mutableStateOf(systemDarkTheme) }
-            var loggedInUser by remember { mutableStateOf("") }
+            var isDarkMode by remember { mutableStateOf(true) }
+            val context = LocalContext.current
+            val sharedPrefs = remember { context.getSharedPreferences("home_assist", Context.MODE_PRIVATE) }
             
-            val navController = rememberNavController()
+            var currentScreen by remember { 
+                val activeUser = sharedPrefs.getString("active_username", "")
+                if (!activeUser.isNullOrEmpty()) {
+                    mutableStateOf("main")
+                } else {
+                    mutableStateOf("welcome")
+                }
+            }
+            var loggedInUser by remember { 
+                mutableStateOf(sharedPrefs.getString("active_username", "") ?: "") 
+            }
+
+            LaunchedEffect(Unit) {
+                ApiClient.backendIp = sharedPrefs.getString("server_ip", ApiClient.backendIp) ?: ApiClient.backendIp
+                ApiClient.backendPort = sharedPrefs.getString("server_port", ApiClient.backendPort) ?: ApiClient.backendPort
+            }
 
             HomeAssistantDapaTheme(darkTheme = isDarkMode) {
-                NavHost(navController = navController, startDestination = "welcome") {
-                    composable("welcome") {
-                        WelcomeScreen(
-                            isDarkMode = isDarkMode,
-                            onNavigateToAuth = {
-                                navController.navigate("auth")
-                            }
-                        )
-                    }
-                    composable("auth") {
-                        AuthScreen(
-                            isDarkMode = isDarkMode,
-                            onAuthSuccess = { username ->
-                                loggedInUser = username
-                                navController.navigate("dashboard") {
-                                    popUpTo("welcome") { inclusive = true }
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    Crossfade(targetState = currentScreen, label = "ScreenTransition") { screen ->
+                        when (screen) {
+                            "welcome" -> WelcomeScreen(
+                                isDarkMode = isDarkMode,
+                                onNavigateToAuth = { currentScreen = "auth" }
+                            )
+                            "auth" -> AuthScreen(
+                                isDarkMode = isDarkMode,
+                                onAuthSuccess = { username ->
+                                    loggedInUser = username
+                                    sharedPrefs.edit().putString("active_username", username).apply()
+                                    currentScreen = "main"
                                 }
-                            }
-                        )
-                    }
-                    composable("dashboard") {
-                        DashboardScreen(
-                            username = loggedInUser,
-                            isDarkMode = isDarkMode,
-                            onToggleDarkMode = {
-                                isDarkMode = !isDarkMode
-                            },
-                            onLogout = {
-                                loggedInUser = ""
-                                navController.navigate("auth") {
-                                    popUpTo("dashboard") { inclusive = true }
+                            )
+                            "main" -> MainLayout(
+                                username = loggedInUser,
+                                isDarkMode = isDarkMode,
+                                onToggleDarkMode = { isDarkMode = !isDarkMode },
+                                onLogout = {
+                                    sharedPrefs.edit().remove("active_username").apply()
+                                    loggedInUser = ""
+                                    currentScreen = "auth"
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }

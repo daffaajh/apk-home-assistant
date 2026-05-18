@@ -11,10 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,11 +24,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dapa.homeassist.network.ApiClient
 import com.dapa.homeassist.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +41,7 @@ fun AuthScreen(
 ) {
     val context = LocalContext.current
     val sharedPrefs = remember { context.getSharedPreferences("home_assist", Context.MODE_PRIVATE) }
+    val coroutineScope = rememberCoroutineScope()
     
     var isLoginMode by remember { mutableStateOf(true) }
     
@@ -48,6 +49,7 @@ fun AuthScreen(
     var email by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
     
     var errorMessage by remember { mutableStateOf("") }
     
@@ -239,17 +241,26 @@ fun AuthScreen(
                             onValueChange = { password = it },
                             label = { Text("Password") },
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = NeonBlue) },
-                            visualTransformation = PasswordVisualTransformation(),
+                            trailingIcon = {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = null,
+                                        tint = textSecColor
+                                    )
+                                }
+                            },
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                             shape = RoundedCornerShape(12.dp),
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = textColor,
-                                    unfocusedTextColor = textColor,
-                                    focusedLabelColor = NeonBlue,
-                                    unfocusedLabelColor = textSecColor,
-                                    focusedBorderColor = NeonBlue,
-                                    unfocusedBorderColor = cardBorder
+                                focusedTextColor = textColor,
+                                unfocusedTextColor = textColor,
+                                focusedLabelColor = NeonBlue,
+                                unfocusedLabelColor = textSecColor,
+                                focusedBorderColor = NeonBlue,
+                                unfocusedBorderColor = cardBorder
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -282,14 +293,18 @@ fun AuthScreen(
                                         } else {
                                             ApiClient.login(identifier, password,
                                                 onSuccess = { cleanUname ->
-                                                    sharedPrefs.edit()
-                                                        .putString("local_username", cleanUname)
-                                                        .putString("local_password", password)
-                                                        .apply()
-                                                    onAuthSuccess(cleanUname)
+                                                    coroutineScope.launch(Dispatchers.Main) {
+                                                        sharedPrefs.edit()
+                                                            .putString("local_username", cleanUname)
+                                                            .putString("local_password", password)
+                                                            .apply()
+                                                        onAuthSuccess(cleanUname)
+                                                    }
                                                 },
                                                 onError = {
-                                                    errorMessage = "Gagal login! Periksa server atau password."
+                                                    coroutineScope.launch(Dispatchers.Main) {
+                                                        errorMessage = "Gagal login! Periksa koneksi server."
+                                                    }
                                                 }
                                             )
                                         }
@@ -309,11 +324,15 @@ fun AuthScreen(
                                             
                                         ApiClient.register(username.trim(), email.trim(), password.trim(),
                                             onSuccess = {
-                                                sharedPrefs.edit().putBoolean("sync_pending", false).apply()
-                                                onAuthSuccess(username.trim())
+                                                coroutineScope.launch(Dispatchers.Main) {
+                                                    sharedPrefs.edit().putBoolean("sync_pending", false).apply()
+                                                    onAuthSuccess(username.trim())
+                                                }
                                             },
                                             onError = {
-                                                onAuthSuccess(username.trim())
+                                                coroutineScope.launch(Dispatchers.Main) {
+                                                    onAuthSuccess(username.trim())
+                                                }
                                             }
                                         )
                                     }

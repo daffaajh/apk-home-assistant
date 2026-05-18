@@ -179,6 +179,37 @@ object ApiClient {
         })
     }
 
+    fun sendChatMessage(message: String, onSuccess: (String) -> Unit, onError: (Exception) -> Unit) {
+        val payload = mapOf("message" to message)
+        val jsonStr = gson.toJson(payload)
+        val requestBody = jsonStr.toRequestBody(JSON)
+        val request = Request.Builder()
+            .url("$httpUrl/api/chat")
+            .post(requestBody)
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                onError(e)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                try {
+                    val body = response.body?.string()
+                    if (response.isSuccessful && body != null) {
+                        val result = gson.fromJson(body, Map::class.java)
+                        val reply = result["reply"] as? String ?: "No reply"
+                        onSuccess(reply)
+                    } else {
+                        onError(IOException("Chat request failed"))
+                    }
+                } catch (e: Exception) {
+                    onError(e)
+                }
+            }
+        })
+    }
+
     fun connectWebSocket(
         onOpen: () -> Unit,
         onMessage: (String) -> Unit,
@@ -220,7 +251,7 @@ object ApiClient {
             webSocket.close(1000, null)
         }
 
-        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+        override fun closed(webSocket: WebSocket, code: Int, reason: String) {
             onClose()
         }
 

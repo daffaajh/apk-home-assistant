@@ -1,42 +1,41 @@
 package com.dapa.homeassist.model
 
 data class AcState(
-    val power: Boolean,
-    val temp: Int,
-    val mode: String,
-    val fan: String
+    val systemActive: Boolean = true,
+    val power: Boolean = false,
+    val temp: Int = 24,
+    val mode: String = "cool",
+    val fan: String = "high"
 )
 
-data class TempLog(
+data class ControlRequest(
+    val systemActive: Boolean? = null,
+    val power: Boolean? = null,
+    val temp: Int? = null,
+    val mode: String? = null,
+    val fan: String? = null
+)
+
+data class TemperatureLog(
     val timestamp: String,
     val temperature: Float,
     val humidity: Float
 )
 
-data class PowerLog(
-    val timestamp: String,
-    val watts: Float
-)
-
 data class AiSuggestion(
-    val id: String,
-    val timestamp: String,
-    val text: String,
-    val type: String
+    val type: String,
+    val text: String
 )
 
 data class StatusResponse(
     val success: Boolean,
     val acState: AcState,
     val currentPower: Float,
-    val temperatureHistory: List<TempLog>,
-    val powerHistory: List<PowerLog>,
+    val temperatureHistory: List<TemperatureLog>,
     val aiSuggestions: List<AiSuggestion>
 )
 
-data class ControlRequest(
-    val power: Boolean? = null,
-    val temp: Int? = null,
-    val mode: String? = null,
-    val fan: String? = null
+data class ChatMessage(
+    val role: String,
+    val content: String
 )
