@@ -251,7 +251,7 @@ object ApiClient {
             webSocket.close(1000, null)
         }
 
-        override fun closed(webSocket: WebSocket, code: Int, reason: String) {
+        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
             onClose()
         }
 
