@@ -15,6 +15,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dapa.homeassist.theme.*
 
+import com.dapa.homeassist.components.LiquidBottomTabs
+import com.dapa.homeassist.components.LiquidBottomTab
+import androidx.compose.ui.unit.sp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainLayout(
@@ -25,55 +29,67 @@ fun MainLayout(
 ) {
     var selectedTab by remember { mutableStateOf(0) }
 
-    val navBg = if (isDarkMode) Color(0xFF0F172A) else Color(0xFFFFFFFF)
+    val navBg = if (isDarkMode) Color(0xFF0B0F19) else Color(0xFFE2E8F0)
     val selectedIconColor = NeonBlue
     val unselectedIconColor = if (isDarkMode) TextGray else TextDarkGray
 
     Scaffold(
         bottomBar = {
-            NavigationBar(
-                containerColor = navBg,
-                tonalElevation = 8.dp
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(navBg)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                    label = { Text("Beranda", fontWeight = FontWeight.Bold) },
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = selectedIconColor,
-                        selectedTextColor = selectedIconColor,
-                        unselectedIconColor = unselectedIconColor,
-                        unselectedTextColor = unselectedIconColor,
-                        indicatorColor = selectedIconColor.copy(alpha = 0.15f)
-                    )
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Chat, contentDescription = "AI") },
-                    label = { Text("Tanya AI", fontWeight = FontWeight.Bold) },
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = selectedIconColor,
-                        selectedTextColor = selectedIconColor,
-                        unselectedIconColor = unselectedIconColor,
-                        unselectedTextColor = unselectedIconColor,
-                        indicatorColor = selectedIconColor.copy(alpha = 0.15f)
-                    )
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                    label = { Text("Pengaturan", fontWeight = FontWeight.Bold) },
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = selectedIconColor,
-                        selectedTextColor = selectedIconColor,
-                        unselectedIconColor = unselectedIconColor,
-                        unselectedTextColor = unselectedIconColor,
-                        indicatorColor = selectedIconColor.copy(alpha = 0.15f)
-                    )
-                )
+                LiquidBottomTabs(
+                    selectedTabIndex = selectedTab,
+                    onTabSelected = { selectedTab = it },
+                    tabsCount = 3,
+                    activeColor = NeonBlue
+                ) {
+                    LiquidBottomTab(onClick = { selectedTab = 0 }) {
+                        Icon(
+                            imageVector = Icons.Default.Home,
+                            contentDescription = "Home",
+                            tint = if (selectedTab == 0) selectedIconColor else unselectedIconColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "Beranda",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            color = if (selectedTab == 0) selectedIconColor else unselectedIconColor
+                        )
+                    }
+                    LiquidBottomTab(onClick = { selectedTab = 1 }) {
+                        Icon(
+                            imageVector = Icons.Default.Chat,
+                            contentDescription = "AI",
+                            tint = if (selectedTab == 1) selectedIconColor else unselectedIconColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "Tanya AI",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            color = if (selectedTab == 1) selectedIconColor else unselectedIconColor
+                        )
+                    }
+                    LiquidBottomTab(onClick = { selectedTab = 2 }) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = if (selectedTab == 2) selectedIconColor else unselectedIconColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "Pengaturan",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            color = if (selectedTab == 2) selectedIconColor else unselectedIconColor
+                        )
+                    }
+                }
             }
         }
     ) { innerPadding ->

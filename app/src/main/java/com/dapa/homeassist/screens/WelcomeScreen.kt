@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dapa.homeassist.network.ApiClient
 import com.dapa.homeassist.theme.*
+import com.dapa.homeassist.components.LiquidGlassButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -180,22 +181,11 @@ fun WelcomeScreen(
 
                         Spacer(modifier = Modifier.height(28.dp))
 
-                        Button(
+                        LiquidGlassButton(
                             onClick = onNavigateToAuth,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.Transparent
-                            ),
-                            contentPadding = PaddingValues(),
-                            shape = RoundedCornerShape(16.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp)
-                                .background(
-                                    brush = Brush.horizontalGradient(
-                                        colors = listOf(LightBlue, NeonBlue)
-                                    ),
-                                    shape = RoundedCornerShape(16.dp)
-                                )
                         ) {
                             Text(
                                 text = "Mulai Sekarang",

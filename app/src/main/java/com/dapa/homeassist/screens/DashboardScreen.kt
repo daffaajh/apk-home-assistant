@@ -26,6 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dapa.homeassist.model.ControlRequest
 import com.dapa.homeassist.network.ApiClient
+import com.dapa.homeassist.components.LiquidGlassButton
+import com.dapa.homeassist.components.LiquidGlassToggle
+import com.dapa.homeassist.components.LiquidGlassSlider
 import com.dapa.homeassist.theme.*
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -533,18 +536,13 @@ fun DashboardScreen(
                                         color = if (systemActive) NeonGreen else NeonRed
                                     )
                                 }
-                                Switch(
+                                LiquidGlassToggle(
                                     checked = systemActive,
                                     onCheckedChange = {
                                         systemActive = it
                                         sendControlCommand()
                                     },
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = NeonBlue,
-                                        uncheckedThumbColor = TextGray,
-                                        uncheckedTrackColor = Color.Transparent
-                                    )
+                                    activeColor = NeonBlue
                                 )
                             }
                         }
@@ -576,18 +574,13 @@ fun DashboardScreen(
                                         )
                                     }
 
-                                    Switch(
+                                    LiquidGlassToggle(
                                         checked = acPower,
                                         onCheckedChange = {
                                             acPower = it
                                             sendControlCommand()
                                         },
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = Color.White,
-                                            checkedTrackColor = NeonBlue,
-                                            uncheckedThumbColor = TextGray,
-                                            uncheckedTrackColor = Color.Transparent
-                                        )
+                                        activeColor = NeonBlue
                                     )
                                 }
 
@@ -717,13 +710,13 @@ fun DashboardScreen(
                                                 Text("Gerakan bilah angin atas-bawah", fontSize = 11.sp, color = textSecColor)
                                             }
                                         }
-                                        Switch(
+                                        LiquidGlassToggle(
                                             checked = acSwing,
                                             onCheckedChange = {
                                                 acSwing = it
                                                 sendControlCommand()
                                             },
-                                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NeonBlue)
+                                            activeColor = NeonBlue
                                         )
                                     }
 
@@ -746,30 +739,30 @@ fun DashboardScreen(
                                                     Text(if (acTimerActive) "Mati otomatis dalam ${acTimerDuration} menit" else "Nonaktif", fontSize = 11.sp, color = textSecColor)
                                                 }
                                             }
-                                            Switch(
+                                            LiquidGlassToggle(
                                                 checked = acTimerActive,
                                                 onCheckedChange = {
                                                     acTimerActive = it
                                                     sendControlCommand()
                                                 },
-                                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NeonBlue)
+                                                activeColor = NeonBlue
                                             )
                                         }
 
                                         if (acTimerActive) {
                                             Spacer(modifier = Modifier.height(12.dp))
-                                            Slider(
+                                            LiquidGlassSlider(
                                                 value = acTimerDuration.toFloat(),
                                                 onValueChange = { 
                                                     acTimerDuration = it.toInt() 
                                                 },
-                                                onValueChangeFinished = {
-                                                    sendControlCommand()
-                                                },
                                                 valueRange = 15f..240f,
-                                                steps = 14, // 15 min increments
-                                                colors = SliderDefaults.colors(thumbColor = NeonBlue, activeTrackColor = NeonBlue)
+                                                activeColor = NeonBlue
                                             )
+                                            LaunchedEffect(acTimerDuration) {
+                                                delay(400)
+                                                sendControlCommand()
+                                            }
                                         }
                                     }
 
@@ -807,13 +800,13 @@ fun DashboardScreen(
                                             }
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Text("Aktif", fontSize = 12.sp, color = textSecColor, modifier = Modifier.padding(end = 6.dp))
-                                                Switch(
+                                                LiquidGlassToggle(
                                                     checked = acScheduledOnActive,
                                                     onCheckedChange = {
                                                         acScheduledOnActive = it
                                                         sendControlCommand()
                                                     },
-                                                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NeonBlue)
+                                                    activeColor = NeonBlue
                                                 )
                                             }
                                         }
@@ -840,24 +833,22 @@ fun DashboardScreen(
                                             }
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Text("Aktif", fontSize = 12.sp, color = textSecColor, modifier = Modifier.padding(end = 6.dp))
-                                                Switch(
+                                                LiquidGlassToggle(
                                                     checked = acScheduledOffActive,
                                                     onCheckedChange = {
                                                         acScheduledOffActive = it
                                                         sendControlCommand()
                                                     },
-                                                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = NeonBlue)
+                                                    activeColor = NeonBlue
                                                 )
                                             }
                                         }
                                         
                                         if (acScheduledOnActive || acScheduledOffActive) {
                                             Spacer(modifier = Modifier.height(12.dp))
-                                            Button(
+                                            LiquidGlassButton(
                                                 onClick = { sendControlCommand() },
-                                                colors = ButtonDefaults.buttonColors(containerColor = cardBg),
-                                                modifier = Modifier.fillMaxWidth().border(1.dp, NeonBlue, RoundedCornerShape(8.dp)),
-                                                shape = RoundedCornerShape(8.dp)
+                                                modifier = Modifier.fillMaxWidth()
                                             ) {
                                                 Text("Terapkan Jadwal Baru", color = NeonBlue, fontWeight = FontWeight.Bold)
                                             }
