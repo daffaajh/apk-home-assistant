@@ -81,7 +81,7 @@ class HomeAssistWidget : AppWidgetProvider() {
     private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
         val views = RemoteViews(context.packageName, R.layout.widget_layout)
 
-        // Update display text
+        // Update baseline display text
         views.setTextViewText(R.id.widget_status, "AC: ${if (localPower) "ON" else "OFF"}")
         views.setTextViewText(R.id.widget_temp_val, "${localTemp}°C")
 
@@ -97,6 +97,32 @@ class HomeAssistWidget : AppWidgetProvider() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         views.setOnClickPendingIntent(R.id.header, headerPendingIntent)
+
+        // Asynchronously fetch status to update stats
+        val sharedPrefs = context.getSharedPreferences("home_assist", Context.MODE_PRIVATE)
+        ApiClient.backendIp = sharedPrefs.getString("server_ip", ApiClient.backendIp) ?: ApiClient.backendIp
+        ApiClient.backendPort = sharedPrefs.getString("server_port", ApiClient.backendPort) ?: ApiClient.backendPort
+
+        ApiClient.fetchStatus(
+            onSuccess = { response ->
+                localPower = response.acState.power
+                localTemp = response.acState.temp
+                
+                val lastLog = response.temperatureHistory.lastOrNull()
+                val roomTemp = lastLog?.temperature ?: 24.0
+                val roomHumid = lastLog?.humidity ?: 60.0
+                
+                views.setTextViewText(R.id.widget_status, "AC: ${if (localPower) "ON" else "OFF"}")
+                views.setTextViewText(R.id.widget_temp_val, "${localTemp}°C")
+                views.setTextViewText(R.id.widget_room_stats, String.format("Kamar: %.1f°C | %.0f%%", roomTemp, roomHumid))
+                
+                appWidgetManager.updateAppWidget(appWidgetId, views)
+            },
+            onError = {
+                views.setTextViewText(R.id.widget_room_stats, "Kamar: Offline")
+                appWidgetManager.updateAppWidget(appWidgetId, views)
+            }
+        )
 
         appWidgetManager.updateAppWidget(appWidgetId, views)
     }

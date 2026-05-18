@@ -17,7 +17,16 @@ import com.dapa.homeassist.screens.MainLayout
 import com.dapa.homeassist.screens.WelcomeScreen
 import com.dapa.homeassist.theme.HomeAssistantDapaTheme
 
+import androidx.activity.result.contract.ActivityResultContracts
+import android.os.Build
+import android.Manifest
+
 class MainActivity : ComponentActivity() {
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ -> }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -40,6 +49,15 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(Unit) {
                 ApiClient.backendIp = sharedPrefs.getString("server_ip", ApiClient.backendIp) ?: ApiClient.backendIp
                 ApiClient.backendPort = sharedPrefs.getString("server_port", ApiClient.backendPort) ?: ApiClient.backendPort
+                
+                val permissionsToRequest = mutableListOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+                }
+                requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
             }
 
             HomeAssistantDapaTheme(darkTheme = isDarkMode) {

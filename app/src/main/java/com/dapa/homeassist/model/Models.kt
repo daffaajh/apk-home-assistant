@@ -41,12 +41,19 @@ data class AiSuggestion(
     val text: String
 )
 
+data class AcUsageLog(
+    val start: String,
+    val end: String,
+    val durationMinutes: Int
+)
+
 data class StatusResponse(
     val success: Boolean,
     val acState: AcState,
     val currentPower: Float,
     val temperatureHistory: List<TemperatureLog>,
-    val aiSuggestions: List<AiSuggestion>
+    val aiSuggestions: List<AiSuggestion> = emptyList(),
+    val acUsageLogs: List<AcUsageLog> = emptyList()
 )
 
 data class ChatMessage(

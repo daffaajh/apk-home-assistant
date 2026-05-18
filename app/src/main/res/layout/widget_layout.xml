@@ -61,6 +61,15 @@
                 android:textColor="#00F0FF"
                 android:textSize="22sp"
                 android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_room_stats"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Kamar: --°C | --%"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
+                android:layout_marginTop="2dp" />
         </LinearLayout>
 
         <!-- Buttons Controls -->

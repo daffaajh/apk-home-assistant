@@ -65,6 +65,9 @@ fun DashboardScreen(
     var acScheduledOnActive by remember { mutableStateOf(false) }
     var acScheduledOffActive by remember { mutableStateOf(false) }
     
+    // Usage logs state
+    var acUsageLogs by remember { mutableStateOf<List<com.dapa.homeassist.model.AcUsageLog>>(emptyList()) }
+    
     var estimatedWatts by remember { mutableStateOf(0f) }
     var currentTime by remember { mutableStateOf("") }
     var currentDate by remember { mutableStateOf("") }
@@ -83,6 +86,51 @@ fun DashboardScreen(
     val cardBorder = if (isDarkMode) DarkBorder else LightBorder
     val textColor = if (isDarkMode) TextWhite else TextDark
     val textSecColor = if (isDarkMode) TextGray else TextDarkGray
+
+    // Formatting Helper Functions
+    fun formatUsageTime(isoString: String): String {
+        return try {
+            val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }
+            val date = parser.parse(isoString) ?: return ""
+            val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
+            formatter.format(date)
+        } catch (e: Exception) {
+            try {
+                val parser2 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }
+                val date2 = parser2.parse(isoString) ?: return ""
+                val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
+                formatter.format(date2)
+            } catch (ex: Exception) {
+                ""
+            }
+        }
+    }
+
+    fun formatUsageDate(isoString: String): String {
+        return try {
+            val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }
+            val date = parser.parse(isoString) ?: return ""
+            val formatter = SimpleDateFormat("EEE, dd MMM", Locale.getDefault())
+            formatter.format(date)
+        } catch (e: Exception) {
+            try {
+                val parser2 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }
+                val date2 = parser2.parse(isoString) ?: return ""
+                val formatter = SimpleDateFormat("EEE, dd MMM", Locale.getDefault())
+                formatter.format(date2)
+            } catch (ex: Exception) {
+                ""
+            }
+        }
+    }
 
     fun syncOfflineRegister() {
         val syncPending = sharedPrefs.getBoolean("sync_pending", false)
@@ -146,6 +194,12 @@ fun DashboardScreen(
                                 val wattVal = map["currentPower"] as? Double
                                 estimatedWatts = wattVal?.toFloat() ?: estimatedWatts
                             }
+
+                            val logsJson = gson.toJson(map["acUsageLogs"] ?: map["payload"]?.let { (it as Map<*, *>)["acUsageLogs"] })
+                            if (!logsJson.isNullOrEmpty() && logsJson != "null") {
+                                val listType = object : com.google.gson.reflect.TypeToken<List<com.dapa.homeassist.model.AcUsageLog>>() {}.type
+                                acUsageLogs = gson.fromJson(logsJson, listType)
+                            }
                         } else if (type == "live_data_update") {
                             val payloadJson = gson.toJson(map["payload"])
                             val payload = gson.fromJson(payloadJson, Map::class.java)
@@ -165,9 +219,21 @@ fun DashboardScreen(
             },
             onClose = {
                 isServerOnline = false
+                coroutineScope.launch {
+                    delay(5000)
+                    if (!isServerOnline) {
+                        connectWebSocket()
+                    }
+                }
             },
             onError = {
                 isServerOnline = false
+                coroutineScope.launch {
+                    delay(5000)
+                    if (!isServerOnline) {
+                        connectWebSocket()
+                    }
+                }
             }
         )
     }
@@ -195,6 +261,7 @@ fun DashboardScreen(
                     acScheduledOffActive = response.acState.scheduledOffActive
                     
                     estimatedWatts = response.currentPower
+                    acUsageLogs = response.acUsageLogs
                     
                     if (response.temperatureHistory.isNotEmpty()) {
                         val lastLog = response.temperatureHistory.last()
@@ -249,13 +316,6 @@ fun DashboardScreen(
     LaunchedEffect(key1 = ApiClient.backendIp, key2 = ApiClient.backendPort) {
         syncData()
         connectWebSocket()
-        while (true) {
-            delay(10000)
-            if (!isServerOnline) {
-                syncData()
-                connectWebSocket()
-            }
-        }
     }
 
     DisposableEffect(key1 = true) {
@@ -800,6 +860,140 @@ fun DashboardScreen(
                                                 shape = RoundedCornerShape(8.dp)
                                             ) {
                                                 Text("Terapkan Jadwal Baru", color = NeonBlue, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(cardBg)
+                            .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
+                            .padding(20.dp)
+                    ) {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.TrendingUp,
+                                    contentDescription = null,
+                                    tint = NeonBlue,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = "Analitik Penggunaan AC",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = textColor
+                                    )
+                                    Text(
+                                        text = "Riwayat durasi aktif & konsumsi energi",
+                                        fontSize = 12.sp,
+                                        color = textSecColor
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(20.dp))
+
+                            if (acUsageLogs.isEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 12.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            imageVector = Icons.Default.HourglassEmpty,
+                                            contentDescription = null,
+                                            tint = textSecColor.copy(alpha = 0.5f),
+                                            modifier = Modifier.size(36.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Belum Ada Catatan Pemakaian",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = textSecColor
+                                        )
+                                        Text(
+                                            text = "Log aktivitas On/Off akan terisi otomatis di sini",
+                                            fontSize = 11.sp,
+                                            color = textSecColor.copy(alpha = 0.8f)
+                                        )
+                                    }
+                                }
+                            } else {
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    acUsageLogs.takeLast(5).reversed().forEach { log ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(if (isDarkMode) Color(0x11FFFFFF) else Color(0x08000000))
+                                                .border(1.dp, cardBorder.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                                                .padding(14.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(8.dp)
+                                                        .clip(CircleShape)
+                                                        .background(NeonGreen)
+                                                )
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column {
+                                                    val startT = formatUsageTime(log.start)
+                                                    val endT = formatUsageTime(log.end)
+                                                    val dateStr = formatUsageDate(log.start)
+                                                    
+                                                    Text(
+                                                        text = if (startT.isNotEmpty() && endT.isNotEmpty()) "$startT - $endT" else "Aktif Selesai",
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = textColor
+                                                    )
+                                                    Text(
+                                                        text = if (dateStr.isNotEmpty()) dateStr else "Baru Saja",
+                                                        fontSize = 11.sp,
+                                                        color = textSecColor
+                                                    )
+                                                }
+                                            }
+                                            
+                                            Column(horizontalAlignment = Alignment.End) {
+                                                val hrs = log.durationMinutes / 60
+                                                val mins = log.durationMinutes % 60
+                                                val durationStr = if (hrs > 0) "${hrs}j ${mins}m" else "${mins}m"
+                                                val estKwh = (log.durationMinutes / 60.0) * 0.65
+                                                
+                                                Text(
+                                                    text = durationStr,
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = NeonBlue
+                                                )
+                                                Text(
+                                                    text = String.format("Est: %.2f kWh", estKwh),
+                                                    fontSize = 11.sp,
+                                                    color = textSecColor
+                                                )
                                             }
                                         }
                                     }
